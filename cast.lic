@@ -1,161 +1,130 @@
 # quiet
 =begin
 
-  A highly configurable helper to cast spells.
+  Cast spells with ease.
 
-  THE BASICS
+
+  BASIC USAGE
+  -----------
+  We'll walk through by example.
+
+  `;cast tranq 75`
+
+  Will cast Tranquility on myself, using a total of 75 mana. If my yaml is
+  configured to use cambrinth, it'll honor those settings.
+
+  `;cast ip krenze`
+
+  Will cast Ice Patch on Krenze with the default amount of mana. If I've never
+  used this script before, that is min-prep for the spell. (but see: SAVING
+  DEFAULTS below)
+
+  `;cast suf discern`
+
+  Will `discern` to figure out how much mana to use and then cast Sure Footing
+  on myself.
+
+
+  MANAGING CAMBRINTH CHARGES
+  --------------------------
+  You can override the cambrinth settings you have in your YAML.
+
+  `;cast grizz 40 -c2 engaged`
+
+  Will cast Grizzly Claws at engaged, using a total of 40 mana, using 2
+  cambrinth charges. So, it will prep at 14, charge 13, charge 13, then cast.
+
+  `;cast lb 50 -c0`
+
+  Will cast Lightning Bolt at whoever I am facing, using a straight prep of 50
+  mana. (`-c0` means no cambrinth charges will be used.)
+
+  `;cast awaken 80 -c8s`
+
+  Will cast Awaken using a total of 80 mana, using as many cambrinth charges
+  as possible within 8 seconds.
+
+
+  MANAGING PREP TIME
+  ------------------
+  By default the script will wait for full prep, but you can change how long
+  it waits:
+
+  `;cast vh 20 -c0 -p5`
+
+  Will straight prep Vitality Healing at 20 mana, then cast after 5 seconds.
+
+
+  RUNESTONES
   ----------
-  You can cast a spell using its abbreviation or using part of its name:
-  * `,cast bs` will cast Blood Staunching.
-  * So will `,cast blood`.
-  * But be careful: `,cast bl` will cast Blessing of the Fae.
-  The spell name/abbreviation is always expected to be the first argument
-  supplied.
+  `;cast athl 40 -r=selenite.runestone`
 
-  You can configure the (total!) amount of mana to be used in the cast, as well
-  as the target to cast at:
-  * `,cast ip krenze` will cast Ice Patch at Krenze, using min prep (or an
-    amount of mana you have saved as default, see below).
-  * `,cast ags 50` will cast Aggressive Stance using 50 mana at the default
-    target (which for a buff is yourself).
-  * `,cast gz 30 troll` will cast Gar Zeng using 30 mana at a troll.
-  * `,cast hw 15 head` will cast Heal Wounds using 15 mana on your head.
-  * `,cast griz 40 engaged` will cast Grizzly Claws using 40 mana at engaged.
+  Will cast Athleticism at 40 total mana using a selenite runestone in my
+  inventory.
 
-  You can also use `discern` in place of a mana amount, and the script will use
-  `discern` to figure out how much mana to use (including honoring whatever
-  `prep_scaling_factor` you have configured). Ex:
-  * `,cast heal discern` will discern the Heal spell and then cast at some
-    fraction of the discerned max prep.
 
-  You can use `-d` or `-debug` to turn on debug logging for this run.
-
-  OTHER PARAMETERS
-  ----------------
-  Besides total mana and target, the following parameters can be used:
-
-  * `charge`: charges some of the mana for the cast into cambrinth. This uses
-    the same settings as `buff`, including whatever default you've set for
-    `cambrinth_num_charges`. Set it as either `-c??` or `-charge=??`.
-
-    You can specify a number, which is the number of charge actions to spread
-    across. For example:
-    * `,cast ts 67 -charge=4` will cast Tenebrous Sense by preparing at 14 mana
-      then charging 14, 13, 13, 13 to cambrinth.
-    * `,cast cr 80 -c2` will cast Calculated Rage by preparing at 30 mana (the
-      min spell prep) and charging 25, 25 to cambrinth.
-
-    You can also give a number of seconds in which case the script will
-    optimize for the largest number of small charges that can fit within that
-    amount of time. For example, if you have 825 ranks of Arcana:
-    * `,cast lw 80 -charge=9s` will cast Lay Ward by preparing at 27 mana then
-      charging 27, 26 to cambrinth, which can be done in 9 seconds: 4 seconds
-      per charge and 1 second to invoke.
-    * `,cast lw 80 -charge=8s` will cast Lay Ward by preparing at 40 mana then
-      charging 40 to cambrinth, which can be done in 6 seconds: 5 seconds for
-      the charge and 1 second to invoke.
-    This makes it easy to spread charges as efficiently as possible over
-    however long you're willing to wait before casting.
-
-  * `prep_time`: accepts a number of seconds to wait before casting the spell,
-    rather than waiting for it to be fully prepared. Set this as either `-p??`
-    or `-prep_time=??`. For example:
-    * `,cast vh 40 -p8` will cast Vitality Healing at 40 mana after 8 seconds.
-
-  * `runestone`: accepts the name of a runestone or other similar item to use
-    instead of preparing normally. Set this as either `-r=??` or
-    `-runestone=??`. You can't use any spaces, so if you need an adjective then
-    give it as `adjective.noun`, e.g.:
-    * `,cast athl 40 -c2 -r=selenite.runestone` will cast Athleticism at 40
-      mana using a selenite runestone. Runestones can only be prepped at 20
-      mana, so cambrinth will be charged for 10, 10.
-
-  * `symbiosis`: whether or not to use your currently researched symbiosis when
-    casting. Set this as either `-s` or `-symbiosis`, and UNset it as either
-    `-!s` or `-!symbiosis`.
-
-  * `force`: bypass checks like mana thresholds and recast timers. Always cast.
-    Set as `-force`/`-f` or unset as `-!force`/`-!f`
-
-  * `wait`: if fatigue, attunement, or concentration are below configured
-    thresholds, then wait until they have recovered and then cast. By default,
-    the cast will simply fail. Set as `-wait`/`-w` or unset as `-!wait`/`-!w`
-
-  SAVING DEFAULT PARAMETERS
-  -------------------------
-  For ease of use, you can save a given set of parameters as the default for
-  that spell, then just reference the spell on future casts. Even when you have
-  saved parameters, you can still override them per-cast.
-
-  To do this, add the flag `-save` -- instead of casting, the default values
-  will be saved to UserVars. For example:
-  * `,cast nb 42 -c2 engaged -save` will set Nissa's Binding to be cast with 42
-    mana, 2 cambrinth charges, and cast at engaged enemies. Afterward:
-  * `,cast nb` will cast the spell with those parameters.
-  * `,cast nb 30` will cast the spell at 30 total mana, but still using the 2
-    cambrinth charges and the target of engaged.
-
-  SAVING ALIASES
-  --------------
-  You can also save an alias for a certain configuration, rather than the spell
-  default. This allows you to have multiple configurations for the same spell,
-  for example to have a full and snap cast version.
-
-  To do this, use `-save=??` and give the alias a name. For example:
-  * `,cast inno 100 -c20s -save` will set the defaults for Innocence to use 100
-    mana and charge over 20 seconds.
-  * `,cast inno 5 -c0 -p0 -save=innos` will create an alias `innos` to cast at
-    5 mana, no charges, cast after 0 seconds. Afterward...
-  * `,cast inno` will cast with the default 100-mana config, `,cast innos`
-    will cast with the 5-mana snap-cast alias.
-
-  Aliases can use any alphanumeric characters or underscores (_) but cannot
-  contain spaces. When referencing them they must be exact: if you save an
-  alias `snap_gaf`, then `,cast snap_g` will NOT be enough to cast it.
-
-  CLEARING SAVED PARAMETERS
-  -------------------------
-  To clear saved parameters or aliases, use the `-clear` flag.
-  * `,cast innos -clear` will clear config for the `innos` alias.
-  * `,cast bs -clear` will clear the default config for Blood Staunching.
-
-  TEST RUNS
+  SYMBIOSIS
   ---------
-  Rather than casting the spell, you can use the flag `-test` to see an output
-  of how the given spell WOULD be cast. For example:
-  ```
-  > ,cast non 76 Kethrai -c20s -test
-  CAST: test results, not casting.
-            Spell name: Nonchalance
-          Abbreviation: NON
-            Total mana: 76
-             Prep mana: 8
-             Cambrinth: [[8, 8, 8, 8, 8, 7, 7, 7, 7]]
-      Est. charge time: 19 sec
-             Cast verb: cast kethrai
-  ```
+  `;cast heal 50 -s`
 
-  EXPORTING YAML
-  --------------
-  You can export a spell's configuration to YAML format suitable for including
-  in a waggle_set. For example:
-  ```
-  > ,cast foc -yaml
-  CAST: YAML config for foc below.
-  ---
-  spell_data:
-    foc: &foc
-      Fountain of Creation:
-        cambrinth: [[14, 14, 14, 13]]
+  Will cast Heal at 50 total mana using my currently researched symbiosis.
 
-  # Example of use in a waggle set:
-  waggle_sets:
-    buff:
-      <<: *foc
-  ```
-  This shows a recommended format for how to include the chosen spell in a
-  waggle set using YAML anchors. The anchor definition must come BEFORE it is
-  referenced elsewhere in the file.
+
+  BYPASS THRESHOLDS
+  -----------------
+  The script will not run if your concentration, mana, or fatigue are below
+  thresholds configured in your YAML, unless you override it. `-f` will force
+  cast regardless of the thresholds. `-w` will wait until you get above the
+  thresholds, and then cast.
+
+
+  SAVING DEFAULTS
+  ---------------
+  You can save a cast configuration as the default for that spell.
+
+  `;cast heal 100 -c4 -save`
+
+  Will save 100 mana and 4 cambrinth charges as my defaults for Heal.
+
+  `;cast heal`
+
+  Will now cast Heal using 100 total mana and 4 cambrinth charges, because of
+  these saved defaults.
+
+  `;cast heal -test`
+
+  Will display the values currently configured to be used for Heal.
+
+  `;cast heal -clear`
+
+  Will clear any saved config for the Heal spell.
+
+  You can combine this with `discern` to quickly save sensible defaults for a
+  spell like: `;cast heal discern -save`
+
+
+  ALIASES
+  -------
+  You can save multiple configurations for the same spell and cast them quickly
+  using aliases:
+
+  `;cast inno 100 -c4 -save`
+
+  Will save 100 mana and 4 cambrinth charges as the default for Innocence.
+
+  `;cast inno 5 -c0 -p0 -save=snap_inno`
+
+  Will create a new alias called `snap_inno` to straight-prep Innocence at 5
+  mana and then immediately cast. Now...
+
+  `;cast snap_inno`
+
+  Will snap-cast Innocence using 5 mana.
+
+  `;cast inno`
+
+  Will cast Innocence at 100 total mana using 4 cambrinth charges.
+
 
   YAML SETTINGS USED
   ------------------
@@ -177,15 +146,16 @@
   `cambrinth_cap` -- Mana capacity
   `stored_cambrinth` -- True: must be held, false: worn
 
+
   TODO
   ----
   Features that are not currently present include:
   * Lots of refactoring cause thing's huge
-  * Ability to harness as well as or instead of charging camb
+  * Allow harness before casting
   * Predicting extra invoke time when using multiple camb items
   * Honoring recast timers
   * Guild-specific casting features (segue, barrage, etc)
-  * Using config in YAML rather than relying on UserVars
+  * Fall back to settings in YAML if not in UserVars
   * Ability to export ALL saved params to waggle YAML instead of one at a time
   * Any automated/unit tests
   * Testing by any guilds other than Empath
@@ -194,9 +164,11 @@
 
         author: Kethrai (dr.kethrai@gmail.com)
           game: Dragonrealms
-       version: 0.3
+       version: 0.3.1
 
   changelog:
+    0.3.1 (2025-01-28):
+      Make documentation more user-friendly (h/t Angel)
     0.3 (2023-07-01):
       Support for attunement/concentration/fatigue thresholds
     0.2 (2023-07-01):
