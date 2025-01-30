@@ -179,8 +179,18 @@ class Astrology
     return unless settings
     return if !Flags['rtr-expire'].nil? && !Flags['rtr-expire']
 
+    Flags.add('rtr-cooldown', /^Your prior ritual is still in effect so starting another one would be a pointless endeavor/)
+
     empty_hands
     DRCA.cast_spell(@rtr_data, settings)
+
+    # If RTR is in cooldown, it's pointless to continue, so bail out of this routine.
+    if Flags['rtr-cooldown']
+      DRC.message("Read the Ripples is in cooldown, so we'll just predict what we can and bail.")
+      predict_all(check_pools)
+      exit
+    end
+
     perc_time = Time.now - 61
     Flags.add('rtr-expire', get_data('spells').spell_data['Read the Ripples']['expire']) if rtr_active?
     DRCMM.get_telescope?(@telescope_name, @telescope_storage) if @have_telescope
@@ -388,6 +398,7 @@ end
 
 before_dying do
   Flags.delete('bad-search')
+  Flags.delete('rtr-cooldown')
 end
 
 # Call this last to avoid the need for forward declarations
